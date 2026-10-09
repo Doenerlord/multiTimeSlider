@@ -1,6 +1,7 @@
 <script>
 import {mapGetters, mapMutations, mapActions} from "vuex";
 import LayerSelector from "./LayerSelector.vue";
+import TimeSliderBar from "./TimeSliderBar.vue";
 
 /**
  * MultiTimeSlider - Hauptkomponente für das MultiTimeSlider-AddOn.
@@ -9,7 +10,8 @@ import LayerSelector from "./LayerSelector.vue";
 export default {
     name: "MultiTimeSlider",
     components: {
-        LayerSelector
+        LayerSelector,
+        TimeSliderBar
     },
     props: {
         /** Side of the menu (mainMenu or secondaryMenu) */
@@ -63,14 +65,6 @@ export default {
          */
         togglePlay () {
             this.setIsPlaying(!this.isPlaying);
-        },
-
-        /**
-         * Behandelt Änderung des Sliders per Input-Event.
-         * @param {Event} event Das Input-Event.
-         */
-        onSliderInput (event) {
-            this.setCurrentStepIndex(Number(event.target.value));
         }
     }
 };
@@ -97,48 +91,11 @@ export default {
 
         <!-- 2. Playback-Steuerung & Zeitstufen-Slider -->
         <div class="card bg-light border-0 p-3 mb-3">
-            <!-- Aktuelle Zeitstufe Badge -->
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="text-muted small">
-                    {{ $t("additional:modules.tools.multiTimeSlider.currentTime") }}:
-                </span>
-                <span
-                    v-if="currentTimeStep"
-                    class="badge bg-primary fs-6 px-2 py-1"
-                >
-                    {{ currentTimeStep }}
-                </span>
-                <span
-                    v-else
-                    class="badge bg-secondary fs-6 px-2 py-1"
-                >
-                    {{ $t("additional:modules.tools.multiTimeSlider.noTimeStepSelected") }}
-                </span>
-            </div>
-
-            <!-- Schieberegler -->
-            <div class="mb-3">
-                <input
-                    id="multi-time-slider-range"
-                    type="range"
-                    class="form-range"
-                    min="0"
-                    :max="timeSteps.length > 0 ? timeSteps.length - 1 : 0"
-                    :value="currentStepIndex"
-                    :disabled="timeSteps.length === 0"
-                    @input="onSliderInput"
-                >
-                <div
-                    v-if="timeSteps.length > 0"
-                    class="d-flex justify-content-between text-muted small px-1"
-                >
-                    <span>{{ timeSteps[0] }}</span>
-                    <span>{{ timeSteps[timeSteps.length - 1] }}</span>
-                </div>
-            </div>
+            <!-- TimeSliderBar mit Live Drag-Tooltip und Ticks -->
+            <TimeSliderBar />
 
             <!-- Steuerungs-Buttons -->
-            <div class="d-flex justify-content-center align-items-center gap-2">
+            <div class="d-flex justify-content-center align-items-center gap-2 mt-3 pt-2 border-top">
                 <!-- Schritt zurück -->
                 <button
                     type="button"
@@ -180,13 +137,5 @@ export default {
 .multi-time-slider-container {
     width: 100%;
     min-width: 280px;
-
-    .form-range {
-        cursor: pointer;
-
-        &:disabled {
-            cursor: not-allowed;
-        }
-    }
 }
 </style>
