@@ -16,6 +16,7 @@ const getters = {
     activeLayerId: state => state.activeLayerId,
     timeSteps: state => state.timeSteps,
     currentStepIndex: state => state.currentStepIndex,
+    sliderPosition: state => state.sliderPosition,
     isPlaying: state => state.isPlaying,
     playbackSpeed: state => state.playbackSpeed,
     isLooping: state => state.isLooping,
@@ -43,6 +44,18 @@ const getters = {
             return null;
         }
         return state.layers.find(layer => layer.id === state.activeLayerId) || null;
+    },
+
+    /**
+     * Prüft, ob der aktive Layer eine Multi-Layer-Sequenz ist.
+     * @param {Object} state Modul-State.
+     * @param {Object} getters Modul-Getters.
+     * @returns {Boolean} true wenn Multi-Layer-Sequenz.
+     */
+    isLayerSequence: (state, getters) => {
+        const active = getters.activeLayer;
+
+        return Boolean(active && Array.isArray(active.layerIds) && active.layerIds.length > 0);
     }
 };
 

@@ -28,6 +28,7 @@ export default {
             "icon",
             "active",
             "layers",
+            "layerIds",
             "activeLayerId",
             "activeLayer",
             "timeSteps",
@@ -43,20 +44,25 @@ export default {
             if (!newVal) {
                 this.cleanup();
             }
+            else {
+                this.initLayers();
+            }
+        },
+        layerIds: {
+            immediate: true,
+            handler () {
+                this.initLayers();
+            }
         },
         layers: {
             immediate: true,
-            handler (newLayers) {
-                if (Array.isArray(newLayers) && newLayers.length > 0 && (!this.activeLayerId || this.timeSteps.length === 0)) {
-                    this.selectLayer(this.activeLayerId || newLayers[0].id);
-                }
+            handler () {
+                this.initLayers();
             }
         }
     },
     mounted () {
-        if (Array.isArray(this.layers) && this.layers.length > 0 && (!this.activeLayerId || this.timeSteps.length === 0)) {
-            this.selectLayer(this.activeLayerId || this.layers[0].id);
-        }
+        this.initLayers();
     },
     beforeUnmount () {
         this.cleanup();
@@ -69,6 +75,7 @@ export default {
             "setActive"
         ]),
         ...mapActions("Modules/MultiTimeSlider", [
+            "initLayers",
             "selectLayer",
             "cleanup"
         ])

@@ -1,4 +1,28 @@
-import {updateLayerTime, getLayerTime} from "../services/layerTimeService.js";
+import {
+    crossfadeLayerSequence,
+    showExactLayer,
+    updateWmsTime,
+    getWmsTime,
+    restoreAllInitialStates,
+    recordInitialState
+} from "../services/layerTimeService.js";
+
+/**
+ * Hilfsfunktion zum chronologischen Sortieren einer Layer-Sequenz (z.B. 1938 -> 2025).
+ * @param {Array<Object>} layerIds Array von { title, layerId }.
+ * @returns {Array<Object>} Sortierte Kopie des Arrays.
+ */
+function sortLayerIdsChronologically (layerIds = []) {
+    return [...layerIds].sort((a, b) => {
+        const numA = parseInt(a.title, 10),
+            numB = parseInt(b.title, 10);
+
+        if (!isNaN(numA) && !isNaN(numB)) {
+            return numA - numB;
+        }
+        return String(a.title).localeCompare(String(b.title));
+    });
+}
 
 /**
  * Actions für das MultiTimeSlider Modul.
@@ -6,37 +30,67 @@ import {updateLayerTime, getLayerTime} from "../services/layerTimeService.js";
  */
 const actions = {
     /**
-     * Initialisiert die konfigurierten Layer aus der Portal-Konfiguration und setzt den ersten Layer aktiv.
+     * Initialisiert und normalisiert die Layer aus der Konfiguration.
+     * Unterstützt sowohl Root-Eintrag "layerIds: [...]" (wie alter LayerSlider)
+     * als auch "layers: [...]" mit Multi-Layer-Sequenzen oder WMS-T Layern.
+     *
      * @param {Object} context Vuex Action Context.
-     * @param {Array<Object>} layers Liste der konfigurierten Zeit-Layer.
      * @returns {void}
      */
-    initLayers ({commit, dispatch, state}, layers) {
-        if (Array.isArray(layers) && layers.length > 0) {
-            commit("setLayers", layers);
+    initLayers ({commit, dispatch, state, rootGetters}) {
+        let normalizedLayers = [];
 
-            const initialLayerId = state.activeLayerId || layers[0].id;
+        // Fall 1: Root-Konfiguration hat direkt layerIds (wie alter LayerSlider)
+        if (Array.isArray(state.layerIds) && state.layerIds.length > 0 && typeof state.layerIds[0] === "object") {
+            const sortedIds = sortLayerIdsChronologically(state.layerIds);
+
+            // Initiale Zustände im Service festhalten
+            sortedIds.forEach(item => recordInitialState(item.layerId, rootGetters));
+
+            normalizedLayers.push({
+                id: "rootLayerSequence",
+                title: state.name || "Historische Luftbilder",
+                layerIds: sortedIds,
+                timeSteps: sortedIds.map(item => item.title),
+                defaultStep: state.defaultStep || sortedIds[sortedIds.length - 1].title
+            });
+        }
+        // Fall 2: Array von Schichten unter "layers: [...]"
+        else if (Array.isArray(state.layers) && state.layers.length > 0) {
+            normalizedLayers = state.layers.map(layer => {
+                if (Array.isArray(layer.layerIds) && layer.layerIds.length > 0) {
+                    const sortedIds = sortLayerIdsChronologically(layer.layerIds);
+
+                    sortedIds.forEach(item => recordInitialState(item.layerId, rootGetters));
+
+                    return {
+                        ...layer,
+                        layerIds: sortedIds,
+                        timeSteps: sortedIds.map(item => item.title),
+                        defaultStep: layer.defaultStep || sortedIds[sortedIds.length - 1].title
+                    };
+                }
+                return layer;
+            });
+        }
+
+        if (normalizedLayers.length > 0) {
+            commit("setLayers", normalizedLayers);
+
+            const initialLayerId = state.activeLayerId || normalizedLayers[0].id;
 
             dispatch("selectLayer", initialLayerId);
         }
     },
 
     /**
-     * Umschaltlogik: Wird ein Layer ausgewählt, liest der Store dessen timeSteps aus,
-     * merkt sich bei Bedarf den ursprünglichen Zustand und setzt den Zielwert.
+     * Wählt einen Layer bzw. eine Sequenz aus und springt zum defaultStep.
      * @param {Object} context Vuex Action Context.
-     * @param {String} layerId Die ID des ausgewählten Layers.
+     * @param {String} layerId Die ID des Ziel-Layers.
      * @returns {void}
      */
     selectLayer ({commit, state, dispatch}, layerId) {
         commit("setActiveLayerId", layerId);
-
-        // Original-Parameter merken, falls noch nicht hinterlegt
-        if (layerId && state.originalLayerParams[layerId] === undefined) {
-            const originalTime = getLayerTime(layerId);
-
-            commit("setOriginalLayerParam", {layerId, param: originalTime});
-        }
 
         const targetLayer = state.layers.find(layer => layer.id === layerId);
 
@@ -60,24 +114,59 @@ const actions = {
         else {
             commit("setTimeSteps", []);
             commit("setCurrentStepIndex", 0);
+            commit("setSliderPosition", 0);
         }
     },
 
     /**
-     * Setzt den aktuellen Zeitindex und synchronisiert den Ziel-Layer auf der Karte.
+     * Setzt die kontinuierliche Slider-Position (während Drag) und führt Live-Überblendung durch.
      * @param {Object} context Vuex Action Context.
-     * @param {Number} index Der neue Zeitstufen-Index.
+     * @param {Number} position Fließkomma-Position auf der Skala.
      * @returns {void}
      */
-    setStepIndex ({commit, dispatch, state}, index) {
-        if (index >= 0 && index < state.timeSteps.length) {
-            commit("setCurrentStepIndex", index);
+    setSliderPosition ({commit, state, getters, dispatch}, position) {
+        const count = state.timeSteps.length;
+
+        if (count === 0) {
+            return;
+        }
+
+        const clampedPos = Math.max(0, Math.min(count - 1, position)),
+            nearestIndex = Math.round(clampedPos);
+
+        commit("setSliderPosition", clampedPos);
+        commit("setCurrentStepIndex", nearestIndex);
+
+        if (getters.isLayerSequence && getters.activeLayer?.layerIds) {
+            crossfadeLayerSequence(getters.activeLayer.layerIds, clampedPos, dispatch);
+        }
+        else {
             dispatch("syncLayerTime");
         }
     },
 
     /**
-     * Synchronisiert die aktive Zeitstufe mit dem Ziel-Layer auf der OpenLayers-Karte.
+     * Setzt einen exakten ganzzahligen Zeitindex (Klick, Schritt vor/zurück, Playback).
+     * @param {Object} context Vuex Action Context.
+     * @param {Number} index Der neue Zeitstufen-Index.
+     * @returns {void}
+     */
+    setStepIndex ({commit, dispatch, state, getters}, index) {
+        if (index >= 0 && index < state.timeSteps.length) {
+            commit("setCurrentStepIndex", index);
+            commit("setSliderPosition", index);
+
+            if (getters.isLayerSequence && getters.activeLayer?.layerIds) {
+                showExactLayer(getters.activeLayer.layerIds, index, dispatch);
+            }
+            else {
+                dispatch("syncLayerTime");
+            }
+        }
+    },
+
+    /**
+     * Synchronisiert den TIME-Parameter für klassische WMS-T Layer.
      * @param {Object} context Vuex Action Context.
      * @returns {void}
      */
@@ -89,12 +178,12 @@ const actions = {
         const currentStep = state.timeSteps[state.currentStepIndex];
 
         if (currentStep !== undefined && currentStep !== null) {
-            updateLayerTime(state.activeLayerId, currentStep);
+            updateWmsTime(state.activeLayerId, currentStep);
         }
     },
 
     /**
-     * Wechselt zur nächsten oder vorherigen Zeitstufe.
+     * Schaltet zur nächsten oder vorherigen Zeitstufe.
      * @param {Object} context Vuex Action Context.
      * @param {Boolean} [forward=true] Vorwärts (true) oder rückwärts (false).
      * @returns {void}
@@ -111,7 +200,6 @@ const actions = {
             dispatch("setStepIndex", nextIndex);
         }
         else if (forward && state.isLooping) {
-            // Im Loop-Modus am Ende wieder an den Anfang springen
             dispatch("setStepIndex", 0);
         }
     },
@@ -126,7 +214,6 @@ const actions = {
             return;
         }
 
-        // Falls wir am Ende stehen und kein Loop aktiv ist, am Anfang starten
         if (state.currentStepIndex >= state.timeSteps.length - 1) {
             dispatch("setStepIndex", 0);
         }
@@ -178,9 +265,9 @@ const actions = {
     },
 
     /**
-     * Ändert die Abspielgeschwindigkeit und passt laufendes Playback an.
+     * Ändert die Abspielgeschwindigkeit.
      * @param {Object} context Vuex Action Context.
-     * @param {Number} speed Neue Geschwindigkeit in Millisekunden.
+     * @param {Number} speed Neue Geschwindigkeit in ms.
      * @returns {void}
      */
     setSpeed ({commit, state, dispatch}, speed) {
@@ -194,21 +281,13 @@ const actions = {
 
     /**
      * Bereinigung beim Schließen des Tools:
-     * Stoppt laufendes Playback und stellt die ursprünglichen TIME-Parameter wieder her.
+     * Stoppt Wiedergabe und stellt vorherige Layer-Zustände wieder her.
      * @param {Object} context Vuex Action Context.
      * @returns {void}
      */
-    cleanup ({dispatch, state}) {
+    cleanup ({dispatch}) {
         dispatch("stopPlayback");
-
-        // Gespeicherte Originalwerte für alle manipulierten Layer wiederherstellen
-        if (state.originalLayerParams) {
-            Object.entries(state.originalLayerParams).forEach(([layerId, originalTime]) => {
-                if (originalTime !== null && originalTime !== undefined) {
-                    updateLayerTime(layerId, originalTime);
-                }
-            });
-        }
+        restoreAllInitialStates(dispatch);
     }
 };
 

@@ -3,7 +3,7 @@ import {mapGetters, mapActions} from "vuex";
 import {calculateDeclutteredLabels} from "../utils/labelDeclutter.js";
 
 /**
- * TimeSliderBar - Schieberegler mit Live-Drag-Tooltip, Ticks und dynamischem Label-Decluttering.
+ * TimeSliderBar - Schieberegler mit stufenlosem Drag-Crossfading, Ticks und dynamischem Label-Decluttering.
  * @module addons/multiTimeSlider/components/TimeSliderBar
  */
 export default {
@@ -19,7 +19,9 @@ export default {
         ...mapGetters("Modules/MultiTimeSlider", [
             "timeSteps",
             "currentStepIndex",
-            "currentTimeStep"
+            "sliderPosition",
+            "currentTimeStep",
+            "isLayerSequence"
         ]),
 
         /**
@@ -31,14 +33,16 @@ export default {
         },
 
         /**
-         * Prozentuale Position des Slider-Daumens (0 bis 100).
+         * Prozentuale Position des Slider-Daumens (0 bis 100) basierend auf der kontinuierlichen Position.
          * @returns {Number} Position in Prozent.
          */
         thumbPercent () {
             if (this.maxStepIndex === 0) {
                 return 50;
             }
-            return (this.currentStepIndex / this.maxStepIndex) * 100;
+            const pos = this.isDragging ? this.sliderPosition : this.currentStepIndex;
+
+            return (pos / this.maxStepIndex) * 100;
         },
 
         /**
@@ -77,7 +81,8 @@ export default {
     },
     methods: {
         ...mapActions("Modules/MultiTimeSlider", [
-            "setStepIndex"
+            "setStepIndex",
+            "setSliderPosition"
         ]),
 
         /**
@@ -102,18 +107,24 @@ export default {
         },
 
         /**
-         * Reagiert auf die Änderung des Sliders (Live-Drag / Input-Event).
+         * Reagiert auf die Änderung des Sliders während des Ziehens (Live-Überblendung).
          * @param {Event} event Das HTML-Input-Event.
          * @returns {void}
          */
         onInput (event) {
-            const newIndex = Number(event.target.value);
+            const pos = parseFloat(event.target.value);
 
-            this.setStepIndex(newIndex);
+            if (this.isLayerSequence) {
+                // Bei Layer-Sequenzen: Stufenloses Überblenden
+                this.setSliderPosition(pos);
+            }
+            else {
+                this.setStepIndex(Math.round(pos));
+            }
         },
 
         /**
-         * Setzt den Drag-Zustand auf aktiv für den Tooltip.
+         * Aktiviert den Drag-Zustand.
          * @returns {void}
          */
         onDragStart () {
@@ -121,15 +132,18 @@ export default {
         },
 
         /**
-         * Beendet den Drag-Zustand.
+         * Beendet den Drag-Zustand und rastet auf den nächsten ganzzahligen Schritt ein.
          * @returns {void}
          */
         onDragEnd () {
             this.isDragging = false;
+            const nearestIndex = Math.round(this.sliderPosition);
+
+            this.setStepIndex(nearestIndex);
         },
 
         /**
-         * Klick auf ein Ticks-Label springt direkt zu diesem Zeitschritt.
+         * Klick auf ein Skalenlabel springt direkt zu diesem Zeitschritt.
          * @param {Number} index Der Zielindex.
          * @returns {void}
          */
@@ -159,7 +173,7 @@ export default {
             </div>
         </div>
 
-        <!-- 2. HTML5 Range Slider mit Event-Bindung -->
+        <!-- 2. HTML5 Range Slider mit feiner Schrittweite für sanftes Überblenden -->
         <div class="slider-wrapper position-relative">
             <input
                 id="multi-time-slider-range-input"
@@ -167,7 +181,8 @@ export default {
                 class="form-range custom-time-range"
                 min="0"
                 :max="maxStepIndex"
-                :value="currentStepIndex"
+                :step="isLayerSequence ? '0.02' : '1'"
+                :value="isDragging ? sliderPosition : currentStepIndex"
                 :disabled="timeSteps.length === 0"
                 aria-label="Zeitschieberegler"
                 @input="onInput"
@@ -175,6 +190,7 @@ export default {
                 @touchstart="onDragStart"
                 @mouseup="onDragEnd"
                 @touchend="onDragEnd"
+                @change="onDragEnd"
             >
 
             <!-- Ticks (Markierungsstriche) -->

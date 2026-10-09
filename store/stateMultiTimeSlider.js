@@ -9,11 +9,12 @@
  * @property {String[]} supportedMapModes Unterstützte Kartenmodi.
  * @property {String} type Typ-ID des Moduls.
  * @property {Boolean} active Sichtbarkeitsstatus des Tools.
- * @property {Array<String|Object>} layerIds Konfigurierte Layer-IDs.
- * @property {Array<Object>} layers Erkannte bzw. konfigurierte Zeit-Layer {id, title, timeSteps, defaultStep}.
+ * @property {Array<String|Object>} layerIds Konfigurierte Layer-IDs (oder Sequenz-Array von {title, layerId}).
+ * @property {Array<Object>} layers Erkannte bzw. konfigurierte Zeit-Layer {id, title, layerIds, timeSteps, defaultStep}.
  * @property {String|null} activeLayerId Aktuell ausgewählte Layer-ID.
- * @property {Array<String>} timeSteps Verfügbare Zeitstufen (ISO 8601 Strings / Jahre).
- * @property {Number} currentStepIndex Aktueller Index in timeSteps.
+ * @property {Array<String>} timeSteps Verfügbare Zeitstufen (Jahre / ISO-Strings).
+ * @property {Number} currentStepIndex Aktueller ganzzahliger Index in timeSteps.
+ * @property {Number} sliderPosition Kontinuierliche Fließkomma-Position (für stufenloses Überblenden).
  * @property {Boolean} isPlaying Status der Playback-Animation.
  * @property {Number} playbackSpeed Abspielgeschwindigkeit in ms.
  * @property {Boolean} isLooping Ob die Wiedergabe am Ende automatisch von vorne beginnt.
@@ -35,6 +36,7 @@ const state = {
     activeLayerId: null,
     timeSteps: [],
     currentStepIndex: 0,
+    sliderPosition: 0,
     isPlaying: false,
     playbackSpeed: 1000,
     isLooping: false,

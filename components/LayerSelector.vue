@@ -32,7 +32,10 @@ export default {
 </script>
 
 <template>
-    <div class="layer-selector-component mb-3">
+    <div
+        v-if="layers.length > 1"
+        class="layer-selector-component mb-3"
+    >
         <label
             for="multi-time-slider-layer-select"
             class="form-label fw-bold mb-1"
@@ -69,6 +72,16 @@ export default {
                 </option>
             </select>
         </div>
+    </div>
+    <div
+        v-else-if="layers.length === 1 && layers[0].title"
+        class="d-flex align-items-center mb-2 text-muted small px-1"
+    >
+        <i
+            class="bi bi-layers me-1 text-primary"
+            aria-hidden="true"
+        />
+        <span class="fw-semibold">{{ layers[0].title }}</span>
     </div>
 </template>
 

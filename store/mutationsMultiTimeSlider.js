@@ -21,6 +21,9 @@ const mutations = {
     setCurrentStepIndex (state, currentStepIndex) {
         state.currentStepIndex = currentStepIndex;
     },
+    setSliderPosition (state, sliderPosition) {
+        state.sliderPosition = sliderPosition;
+    },
     setIsPlaying (state, isPlaying) {
         state.isPlaying = isPlaying;
     },
