@@ -11,7 +11,9 @@
         "play": "Abspielen",
         "pause": "Pausieren",
         "stepBack": "Schritt zurück",
-        "stepForward": "Schritt vor"
+        "stepForward": "Schritt vor",
+        "layer": "Layer",
+        "timeRange": "Zeitspanne"
       }
     }
   }

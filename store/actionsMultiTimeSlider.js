@@ -4,26 +4,53 @@
  */
 const actions = {
     /**
-     * Initialisiert oder wechselt den aktiven Layer und lädt dessen Zeitstufen.
+     * Initialisiert die konfigurierten Layer aus der Portal-Konfiguration und setzt den ersten Layer aktiv.
      * @param {Object} context Vuex Action Context.
-     * @param {String} layerId Ausgewählte Layer-ID.
+     * @param {Array<Object>} layers Liste der konfigurierten Zeit-Layer.
+     * @returns {void}
+     */
+    initLayers ({commit, dispatch, state}, layers) {
+        if (Array.isArray(layers) && layers.length > 0) {
+            commit("setLayers", layers);
+
+            const initialLayerId = state.activeLayerId || layers[0].id;
+
+            dispatch("selectLayer", initialLayerId);
+        }
+    },
+
+    /**
+     * Umschaltlogik: Wird ein Layer ausgewählt, liest der Store dessen timeSteps aus
+     * und setzt den aktuellen Zeitindex auf den konfigurierten defaultStep (oder 0).
+     * @param {Object} context Vuex Action Context.
+     * @param {String} layerId Die ID des ausgewählten Layers.
      * @returns {void}
      */
     selectLayer ({commit, state}, layerId) {
         commit("setActiveLayerId", layerId);
+
         const targetLayer = state.layers.find(layer => layer.id === layerId);
 
         if (targetLayer && Array.isArray(targetLayer.timeSteps) && targetLayer.timeSteps.length > 0) {
             commit("setTimeSteps", targetLayer.timeSteps);
 
-            let initialIndex = 0;
-            if (targetLayer.defaultStep) {
-                const foundIndex = targetLayer.timeSteps.indexOf(targetLayer.defaultStep);
+            let targetIndex = 0;
+
+            if (targetLayer.defaultStep !== undefined && targetLayer.defaultStep !== null) {
+                const foundIndex = targetLayer.timeSteps.findIndex(
+                    step => String(step) === String(targetLayer.defaultStep)
+                );
+
                 if (foundIndex !== -1) {
-                    initialIndex = foundIndex;
+                    targetIndex = foundIndex;
                 }
             }
-            commit("setCurrentStepIndex", initialIndex);
+
+            commit("setCurrentStepIndex", targetIndex);
+        }
+        else {
+            commit("setTimeSteps", []);
+            commit("setCurrentStepIndex", 0);
         }
     },
 
@@ -37,6 +64,7 @@ const actions = {
         if (!state.timeSteps || state.timeSteps.length === 0) {
             return;
         }
+
         const delta = forward ? 1 : -1,
             nextIndex = state.currentStepIndex + delta;
 

@@ -1,5 +1,6 @@
 <script>
 import {mapGetters, mapMutations, mapActions} from "vuex";
+import LayerSelector from "./LayerSelector.vue";
 
 /**
  * MultiTimeSlider - Hauptkomponente für das MultiTimeSlider-AddOn.
@@ -7,6 +8,9 @@ import {mapGetters, mapMutations, mapActions} from "vuex";
  */
 export default {
     name: "MultiTimeSlider",
+    components: {
+        LayerSelector
+    },
     props: {
         /** Side of the menu (mainMenu or secondaryMenu) */
         side: {
@@ -28,10 +32,24 @@ export default {
             "playbackSpeed"
         ])
     },
+    watch: {
+        layers: {
+            immediate: true,
+            handler (newLayers) {
+                if (Array.isArray(newLayers) && newLayers.length > 0 && (!this.activeLayerId || this.timeSteps.length === 0)) {
+                    this.selectLayer(this.activeLayerId || newLayers[0].id);
+                }
+            }
+        }
+    },
+    mounted () {
+        if (Array.isArray(this.layers) && this.layers.length > 0 && (!this.activeLayerId || this.timeSteps.length === 0)) {
+            this.selectLayer(this.activeLayerId || this.layers[0].id);
+        }
+    },
     methods: {
         ...mapMutations("Modules/MultiTimeSlider", [
             "setActive",
-            "setActiveLayerId",
             "setCurrentStepIndex",
             "setIsPlaying"
         ]),
@@ -53,14 +71,6 @@ export default {
          */
         onSliderInput (event) {
             this.setCurrentStepIndex(Number(event.target.value));
-        },
-
-        /**
-         * Behandelt Auswahl eines neuen Layers.
-         * @param {Event} event Das Change-Event.
-         */
-        onLayerChange (event) {
-            this.selectLayer(event.target.value);
         }
     }
 };
@@ -82,36 +92,8 @@ export default {
             </h5>
         </div>
 
-        <!-- 1. Layerauswahl -->
-        <div class="mb-3">
-            <label
-                for="multi-time-slider-layer-select"
-                class="form-label fw-bold mb-1"
-            >
-                {{ $t("additional:modules.tools.multiTimeSlider.selectLayer") }}
-            </label>
-            <select
-                id="multi-time-slider-layer-select"
-                class="form-select form-select-sm"
-                :value="activeLayerId || ''"
-                @change="onLayerChange"
-            >
-                <option
-                    v-if="layers.length === 0"
-                    value=""
-                    disabled
-                >
-                    {{ $t("additional:modules.tools.multiTimeSlider.noLayersAvailable") }}
-                </option>
-                <option
-                    v-for="layer in layers"
-                    :key="layer.id"
-                    :value="layer.id"
-                >
-                    {{ layer.title || layer.name || layer.id }}
-                </option>
-            </select>
-        </div>
+        <!-- 1. Layerauswahl via LayerSelector-Komponente -->
+        <LayerSelector />
 
         <!-- 2. Playback-Steuerung & Zeitstufen-Slider -->
         <div class="card bg-light border-0 p-3 mb-3">
