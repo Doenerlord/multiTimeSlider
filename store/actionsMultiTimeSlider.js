@@ -3,7 +3,6 @@ import {
     showExactLayer,
     updateWmsTime,
     getWmsTime,
-    restoreAllInitialStates,
     recordInitialState,
     setLayerVisibilityAndTransparency
 } from "../services/layerTimeService.js";
@@ -302,14 +301,15 @@ const actions = {
     },
 
     /**
-     * Bereinigung beim Schließen des Tools:
-     * Stoppt Wiedergabe und stellt vorherige Layer-Zustände wieder her.
+     * Cleanup beim Schließen des Tools:
+     * Stoppt die Wiedergabe, lässt aber den ausgewählten Layer auf der Karte sichtbar,
+     * damit der Nutzer Karten-Features (GFI) anklicken und Informationen abrufen kann.
+     *
      * @param {Object} context Vuex Action Context.
      * @returns {void}
      */
     cleanup ({dispatch}) {
         dispatch("stopPlayback");
-        restoreAllInitialStates(dispatch);
     }
 };
 
