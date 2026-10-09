@@ -2,6 +2,7 @@
 import {mapGetters, mapMutations, mapActions} from "vuex";
 import LayerSelector from "./LayerSelector.vue";
 import TimeSliderBar from "./TimeSliderBar.vue";
+import PlaybackControls from "./PlaybackControls.vue";
 
 /**
  * MultiTimeSlider - Hauptkomponente für das MultiTimeSlider-AddOn.
@@ -11,7 +12,8 @@ export default {
     name: "MultiTimeSlider",
     components: {
         LayerSelector,
-        TimeSliderBar
+        TimeSliderBar,
+        PlaybackControls
     },
     props: {
         /** Side of the menu (mainMenu or secondaryMenu) */
@@ -24,6 +26,7 @@ export default {
         ...mapGetters("Modules/MultiTimeSlider", [
             "name",
             "icon",
+            "active",
             "layers",
             "activeLayerId",
             "activeLayer",
@@ -35,6 +38,12 @@ export default {
         ])
     },
     watch: {
+        active (newVal) {
+            // Beim Schließen des Tools: Wiedergabe stoppen und Cleanup ausführen
+            if (!newVal) {
+                this.cleanup();
+            }
+        },
         layers: {
             immediate: true,
             handler (newLayers) {
@@ -49,23 +58,20 @@ export default {
             this.selectLayer(this.activeLayerId || this.layers[0].id);
         }
     },
+    beforeUnmount () {
+        this.cleanup();
+    },
+    unmounted () {
+        this.cleanup();
+    },
     methods: {
         ...mapMutations("Modules/MultiTimeSlider", [
-            "setActive",
-            "setCurrentStepIndex",
-            "setIsPlaying"
+            "setActive"
         ]),
         ...mapActions("Modules/MultiTimeSlider", [
             "selectLayer",
-            "step"
-        ]),
-
-        /**
-         * Schaltet die Animation an/aus.
-         */
-        togglePlay () {
-            this.setIsPlaying(!this.isPlaying);
-        }
+            "cleanup"
+        ])
     }
 };
 </script>
@@ -89,45 +95,14 @@ export default {
         <!-- 1. Layerauswahl via LayerSelector-Komponente -->
         <LayerSelector />
 
-        <!-- 2. Playback-Steuerung & Zeitstufen-Slider -->
+        <!-- 2. Slider & Playback Steuerung -->
         <div class="card bg-light border-0 p-3 mb-3">
             <!-- TimeSliderBar mit Live Drag-Tooltip und Ticks -->
             <TimeSliderBar />
 
-            <!-- Steuerungs-Buttons -->
-            <div class="d-flex justify-content-center align-items-center gap-2 mt-3 pt-2 border-top">
-                <!-- Schritt zurück -->
-                <button
-                    type="button"
-                    class="btn btn-outline-secondary btn-sm"
-                    :title="$t('additional:modules.tools.multiTimeSlider.stepBack')"
-                    :disabled="timeSteps.length === 0 || currentStepIndex <= 0"
-                    @click="step(false)"
-                >
-                    <i class="bi bi-skip-start-fill" />
-                </button>
-
-                <!-- Play / Pause -->
-                <button
-                    type="button"
-                    class="btn btn-primary btn-sm px-3"
-                    :title="isPlaying ? $t('additional:modules.tools.multiTimeSlider.pause') : $t('additional:modules.tools.multiTimeSlider.play')"
-                    :disabled="timeSteps.length === 0"
-                    @click="togglePlay"
-                >
-                    <i :class="isPlaying ? 'bi bi-pause-fill' : 'bi bi-play-fill'" />
-                </button>
-
-                <!-- Schritt vor -->
-                <button
-                    type="button"
-                    class="btn btn-outline-secondary btn-sm"
-                    :title="$t('additional:modules.tools.multiTimeSlider.stepForward')"
-                    :disabled="timeSteps.length === 0 || currentStepIndex >= timeSteps.length - 1"
-                    @click="step(true)"
-                >
-                    <i class="bi bi-skip-end-fill" />
-                </button>
+            <!-- Playback-Steuerung (Play/Pause, Vor, Zurück, Loop, Tempo) -->
+            <div class="mt-3 pt-2 border-top">
+                <PlaybackControls />
             </div>
         </div>
     </div>

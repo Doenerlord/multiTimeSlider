@@ -16,6 +16,9 @@
  * @property {Number} currentStepIndex Aktueller Index in timeSteps.
  * @property {Boolean} isPlaying Status der Playback-Animation.
  * @property {Number} playbackSpeed Abspielgeschwindigkeit in ms.
+ * @property {Boolean} isLooping Ob die Wiedergabe am Ende automatisch von vorne beginnt.
+ * @property {Number|null} playbackTimer Handle des setInterval Timers.
+ * @property {Object} originalLayerParams Gespeicherte Ausgangs-TIME-Parameter zur Wiederherstellung beim Cleanup.
  */
 const state = {
     description: "additional:modules.tools.multiTimeSlider.description",
@@ -33,7 +36,10 @@ const state = {
     timeSteps: [],
     currentStepIndex: 0,
     isPlaying: false,
-    playbackSpeed: 1000
+    playbackSpeed: 1000,
+    isLooping: false,
+    playbackTimer: null,
+    originalLayerParams: {}
 };
 
 export default state;

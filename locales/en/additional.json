@@ -8,10 +8,16 @@
         "noLayersAvailable": "No time-enabled layers available",
         "noTimeStepSelected": "No time step selected",
         "currentTime": "Current time step",
-        "play": "Play",
-        "pause": "Pause",
+        "play": "Start playback",
+        "pause": "Pause playback",
         "stepBack": "Step backward",
-        "stepForward": "Step forward"
+        "stepForward": "Step forward",
+        "speed": "Speed",
+        "loop": "Loop",
+        "loopActive": "Loop active (restarts from beginning at end)",
+        "loopInactive": "Loop inactive (stops at scale end)",
+        "layer": "Layer",
+        "timeRange": "Time range"
       }
     }
   }

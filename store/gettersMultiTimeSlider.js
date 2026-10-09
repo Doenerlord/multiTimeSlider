@@ -18,6 +18,8 @@ const getters = {
     currentStepIndex: state => state.currentStepIndex,
     isPlaying: state => state.isPlaying,
     playbackSpeed: state => state.playbackSpeed,
+    isLooping: state => state.isLooping,
+    playbackTimer: state => state.playbackTimer,
 
     /**
      * Liefert das aktuelle Zeitstufen-Element basierend auf currentStepIndex.

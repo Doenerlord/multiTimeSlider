@@ -27,6 +27,18 @@ const mutations = {
     setPlaybackSpeed (state, playbackSpeed) {
         state.playbackSpeed = playbackSpeed;
     },
+    setIsLooping (state, isLooping) {
+        state.isLooping = isLooping;
+    },
+    setPlaybackTimer (state, playbackTimer) {
+        state.playbackTimer = playbackTimer;
+    },
+    setOriginalLayerParams (state, params) {
+        state.originalLayerParams = params;
+    },
+    setOriginalLayerParam (state, {layerId, param}) {
+        state.originalLayerParams[layerId] = param;
+    },
     setName (state, name) {
         state.name = name;
     },

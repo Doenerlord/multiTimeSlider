@@ -8,10 +8,14 @@
         "noLayersAvailable": "Keine zeitbehafteten Layer verfügbar",
         "noTimeStepSelected": "Keine Zeitstufe ausgewählt",
         "currentTime": "Aktuelle Zeitstufe",
-        "play": "Abspielen",
-        "pause": "Pausieren",
+        "play": "Wiedergabe starten",
+        "pause": "Wiedergabe anhalten",
         "stepBack": "Schritt zurück",
         "stepForward": "Schritt vor",
+        "speed": "Tempo",
+        "loop": "Endlos",
+        "loopActive": "Endlos-Wiedergabe aktiv (Startet am Ende von vorne)",
+        "loopInactive": "Endlos-Wiedergabe inaktiv (Stoppt am Skalenende)",
         "layer": "Layer",
         "timeRange": "Zeitspanne"
       }

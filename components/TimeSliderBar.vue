@@ -1,5 +1,5 @@
 <script>
-import {mapGetters, mapMutations} from "vuex";
+import {mapGetters, mapActions} from "vuex";
 import {calculateDeclutteredLabels} from "../utils/labelDeclutter.js";
 
 /**
@@ -76,8 +76,8 @@ export default {
         }
     },
     methods: {
-        ...mapMutations("Modules/MultiTimeSlider", [
-            "setCurrentStepIndex"
+        ...mapActions("Modules/MultiTimeSlider", [
+            "setStepIndex"
         ]),
 
         /**
@@ -109,7 +109,7 @@ export default {
         onInput (event) {
             const newIndex = Number(event.target.value);
 
-            this.setCurrentStepIndex(newIndex);
+            this.setStepIndex(newIndex);
         },
 
         /**
@@ -134,7 +134,7 @@ export default {
          * @returns {void}
          */
         onLabelClick (index) {
-            this.setCurrentStepIndex(index);
+            this.setStepIndex(index);
         }
     }
 };
