@@ -4,24 +4,30 @@ import {
     updateWmsTime,
     getWmsTime,
     restoreAllInitialStates,
-    recordInitialState
+    recordInitialState,
+    setLayerVisibilityAndTransparency
 } from "../services/layerTimeService.js";
 
 /**
  * Hilfsfunktion zum chronologischen Sortieren einer Layer-Sequenz (z.B. 1938 -> 2025).
+ * Falls die Titel nicht numerisch sind (z.B. "Hundezonen", "Altstoffsammelstellen"),
+ * wird die exakte Konfigurationsreihenfolge beibehalten.
+ *
  * @param {Array<Object>} layerIds Array von { title, layerId }.
- * @returns {Array<Object>} Sortierte Kopie des Arrays.
+ * @returns {Array<Object>} Sortierte oder beibehaltene Kopie des Arrays.
  */
 function sortLayerIdsChronologically (layerIds = []) {
-    return [...layerIds].sort((a, b) => {
-        const numA = parseInt(a.title, 10),
-            numB = parseInt(b.title, 10);
+    const allNumeric = layerIds.length > 0 && layerIds.every(item => {
+        const num = parseInt(item.title, 10);
 
-        if (!isNaN(numA) && !isNaN(numB)) {
-            return numA - numB;
-        }
-        return String(a.title).localeCompare(String(b.title));
+        return !isNaN(num) && String(num) === String(item.title).trim();
     });
+
+    if (allNumeric) {
+        return [...layerIds].sort((a, b) => parseInt(a.title, 10) - parseInt(b.title, 10));
+    }
+    // Reihenfolge aus der Config unverändert übernehmen
+    return [...layerIds];
 }
 
 /**
@@ -44,7 +50,6 @@ const actions = {
         if (Array.isArray(state.layerIds) && state.layerIds.length > 0 && typeof state.layerIds[0] === "object") {
             const sortedIds = sortLayerIdsChronologically(state.layerIds);
 
-            // Initiale Zustände im Service festhalten
             sortedIds.forEach(item => recordInitialState(item.layerId, rootGetters));
 
             normalizedLayers.push({
@@ -55,9 +60,11 @@ const actions = {
                 defaultStep: state.defaultStep || sortedIds[sortedIds.length - 1].title
             });
         }
-        // Fall 2: Array von Schichten unter "layers: [...]"
+        // Fall 2: Array von Reihen / Layern unter "layers: [...]"
         else if (Array.isArray(state.layers) && state.layers.length > 0) {
-            normalizedLayers = state.layers.map(layer => {
+            normalizedLayers = state.layers.map((layer, idx) => {
+                const layerIdKey = layer.id || `layerGroup_${idx}`;
+
                 if (Array.isArray(layer.layerIds) && layer.layerIds.length > 0) {
                     const sortedIds = sortLayerIdsChronologically(layer.layerIds);
 
@@ -65,12 +72,16 @@ const actions = {
 
                     return {
                         ...layer,
+                        id: layerIdKey,
                         layerIds: sortedIds,
                         timeSteps: sortedIds.map(item => item.title),
                         defaultStep: layer.defaultStep || sortedIds[sortedIds.length - 1].title
                     };
                 }
-                return layer;
+                return {
+                    ...layer,
+                    id: layerIdKey
+                };
             });
         }
 
@@ -85,11 +96,22 @@ const actions = {
 
     /**
      * Wählt einen Layer bzw. eine Sequenz aus und springt zum defaultStep.
+     * Blendet dabei alle Layer der vorherigen Sequenz aus.
+     *
      * @param {Object} context Vuex Action Context.
      * @param {String} layerId Die ID des Ziel-Layers.
      * @returns {void}
      */
     selectLayer ({commit, state, dispatch}, layerId) {
+        const prevLayer = state.layers.find(layer => layer.id === state.activeLayerId);
+
+        // Vorherige Sequenz sauber ausblenden, falls gewechselt wird
+        if (prevLayer && prevLayer.id !== layerId && Array.isArray(prevLayer.layerIds)) {
+            prevLayer.layerIds.forEach(item => {
+                setLayerVisibilityAndTransparency(item.layerId, false, 0, dispatch);
+            });
+        }
+
         commit("setActiveLayerId", layerId);
 
         const targetLayer = state.layers.find(layer => layer.id === layerId);

@@ -3,7 +3,7 @@ import layerCollection from "@core/layers/js/layerCollection.js";
 /**
  * Service zur Steuerung zeitbehafteter OpenLayers-Layer im Masterportal.
  * Unterstützt sowohl:
- * 1. Multi-Layer-Sequenzen (z.B. Wien historische Luftbilder mit individueller Layer-ID pro Jahr)
+ * 1. Multi-Layer-Sequenzen (z.B. Wien historische Luftbilder oder thematische WFS-Layer wie Hundezonen, Sammelstellen)
  *    inklusive stufenlosem Überblenden (Crossfading/Transparenz).
  * 2. Klassische WMS-T Layer mit TIME-Parameter (updateParams({ TIME })).
  *
@@ -116,15 +116,25 @@ export function setLayerVisibilityAndTransparency (layerId, visibility, transpar
 
     // 2. Masterportal-LayerConfig im Root-Store synchronisieren
     if (typeof dispatch === "function") {
-        dispatch("replaceByIdInLayerConfig", {
-            layerConfigs: [{
-                id: layerId,
-                layer: {
-                    visibility,
-                    transparency: clampedTransparency
-                }
-            }]
-        }, {root: true});
+        if (!mpLayer && visibility) {
+            // Falls der Layer (z.B. WFS) noch gar nicht im Layertree aktiv ist, dynamisch laden
+            dispatch("addOrReplaceLayer", {
+                layerId,
+                visibility: true,
+                transparency: clampedTransparency
+            }, {root: true});
+        }
+        else {
+            dispatch("replaceByIdInLayerConfig", {
+                layerConfigs: [{
+                    id: layerId,
+                    layer: {
+                        visibility,
+                        transparency: clampedTransparency
+                    }
+                }]
+            }, {root: true});
+        }
     }
 }
 
@@ -132,7 +142,7 @@ export function setLayerVisibilityAndTransparency (layerId, visibility, transpar
  * Führt ein sanftes Überblenden (Crossfading) zwischen benachbarten Layern einer Sequenz durch.
  * Wenn position eine Kommazahl ist (z. B. 2.4), wird Layer 2 mit 60% Deckkraft und Layer 3 mit 40% Deckkraft angezeigt.
  *
- * @param {Array<Object>} layerSequence Array von { title, layerId } in chronologischer Reihenfolge.
+ * @param {Array<Object>} layerSequence Array von { title, layerId }.
  * @param {Number} position Fließkomma-Position auf der Skala (0 bis layerSequence.length - 1).
  * @param {Function} [dispatch=null] Vuex dispatch-Funktion.
  * @returns {void}
@@ -147,9 +157,6 @@ export function crossfadeLayerSequence (layerSequence = [], position = 0, dispat
         lowerIndex = Math.floor(clampedPos),
         upperIndex = Math.ceil(clampedPos),
         fraction = clampedPos - lowerIndex;
-
-    const lowerId = layerSequence[lowerIndex]?.layerId,
-        upperId = layerSequence[upperIndex]?.layerId;
 
     layerSequence.forEach((item, index) => {
         const id = item.layerId;
