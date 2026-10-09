@@ -1,0 +1,18 @@
+{
+  "modules": {
+    "tools": {
+      "multiTimeSlider": {
+        "title": "Multi Time Slider",
+        "description": "Steuerung zeitbehafteter Layer und Zeitreihen",
+        "selectLayer": "Layer auswählen",
+        "noLayersAvailable": "Keine zeitbehafteten Layer verfügbar",
+        "noTimeStepSelected": "Keine Zeitstufe ausgewählt",
+        "currentTime": "Aktuelle Zeitstufe",
+        "play": "Abspielen",
+        "pause": "Pausieren",
+        "stepBack": "Schritt zurück",
+        "stepForward": "Schritt vor"
+      }
+    }
+  }
+}

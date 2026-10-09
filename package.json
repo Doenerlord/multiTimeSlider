@@ -1,0 +1,7 @@
+{
+  "name": "multiTimeSlider",
+  "version": "1.0.0",
+  "description": "MultiTimeSlider Addon for Masterportal",
+  "main": "index.js",
+  "type": "module"
+}

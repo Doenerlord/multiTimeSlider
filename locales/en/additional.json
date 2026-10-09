@@ -1,0 +1,18 @@
+{
+  "modules": {
+    "tools": {
+      "multiTimeSlider": {
+        "title": "Multi Time Slider",
+        "description": "Control time-enabled layers and time series",
+        "selectLayer": "Select Layer",
+        "noLayersAvailable": "No time-enabled layers available",
+        "noTimeStepSelected": "No time step selected",
+        "currentTime": "Current time step",
+        "play": "Play",
+        "pause": "Pause",
+        "stepBack": "Step backward",
+        "stepForward": "Step forward"
+      }
+    }
+  }
+}
